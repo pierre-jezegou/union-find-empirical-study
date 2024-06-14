@@ -1,0 +1,152 @@
+\documentclass[10pt,a4paper,hidelinks]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+
+\newcommand{\documentStatus}{DRAFT}
+
+
+\input{settings-content/packages-and-conf}
+
+\usepackage{lmodern}
+\renewcommand*\familydefault{\sfdefault}
+
+
+\fancyfoot[R]{\raisebox{-0.5\baselineskip}{\includegraphics[scale=0.25]{images/logos/upc_logo.jpeg}}}
+
+\begin{document}
+\include{includes/000-cover_page}
+\tableofcontents
+
+\section{Introduction}
+\subsection{Union find}
+The objective of this assignment is to implement multiple variants of the Union-Find data structure and conduct an experimental analysis of their average performance. Specifically, you will evaluate the performance of 12 different combinations by choosing one of three union strategies and one of four path compression strategies. The union strategies include unweighted quick-union (QU), union-by-size (UW), and union-by-rank (UR). The path compression strategies consist of no compression (NC), full path compression (FC), path splitting (PS), and path halving (PH). The performance assessment will involve initializing a Union-Find data structure with $n$ blocks and processing $m$ distinct pairs of elements in a random order until a single block remains. During this process, you will measure the total path length (TPL) and total pointer updates (TPU) at regular intervals.\\
+
+\subsection{Strategy of resolution}
+For each pair processed, you will calculate TPL by summing the distances of all elements to their representatives and TPU by counting the number of pointer updates required during a Find operation, depending on the path compression strategy used. The experiment will be repeated multiple times for different values of $n$ (e.g., 1000, 5000, 10000), and the results will be averaged to determine the performance of each combination. The final report should include a description of the program, the experimental setup, and plots summarizing the results. These plots should illustrate the evolution of TPL and TPU as a function of the number of pairs processed and compare different heuristics for fixed values of $n$. An optional component of the study involves measuring the actual execution times of the algorithms. The report, prepared using \LaTeX, should be submitted along with the source code and auxiliary files in a zip or tar archive by the specified deadline.
+
+\section{Implementation}
+\subsection{Data structure}
+\subsubsection{Union-Find Implementation}
+The Union-Find data structure is implemented to manage a dynamic set of elements partitioned into disjoint subsets. The class \code{UnionFind} is initialized with a specified number of elements $n$ and a path compression strategy. The primary attributes include \code{parents}, a list where each element points to its parent (initially itself), and \code{n_blocks}, tracking the number of disjoint sets. The class supports several path compression techniques through the \code{PathCompressionType} enumeration, including no compression (NC), full path compression (FC), path splitting (PS), and path halving (PH).
+
+The \code{find} method identifies the representative of the set containing a given element, applying the specified path compression strategy to optimize future operations. The \code{merge} method unites two sets by linking their representatives, thus reducing the number of disjoint sets. Additional methods such as \code{tpl} and \code{tpu} compute the Total Path Length and Total Pointer Updates, respectively, providing metrics for evaluating the efficiency of the data structure. These methods iterate through all elements, calculating depths and pointer updates based on the chosen path compression technique.
+
+\subsubsection{Class Inheritance}
+To extend the functionality of the base \code{UnionFind} class, we implement specific union strategies using class inheritance. The \code{QuickUnion} class inherits from \code{UnionFind} and overrides the \code{merge} method to perform a quick union operation. In this strategy, one tree's root is attached to the other tree's root, maintaining the simplicity of the union operation.
+
+The \code{UnionWeight} class, also inheriting from \code{UnionFind}, implements the union-by-size strategy. It modifies the \code{merge} method to attach the smaller tree to the root of the larger tree, optimizing the tree height. This is achieved by keeping track of the sizes (or weights) of the trees using negative values in the \code{parents} list.
+
+Similarly, the \code{UnionRank} class implements the union-by-rank strategy. It overrides the \code{merge} method to attach the tree with lower rank to the tree with higher rank. This approach ensures that the resulting tree remains balanced, thereby reducing the maximum tree height. Both \code{UnionWeight} and \code{UnionRank} classes utilize the path compression strategies defined in the base class to enhance the efficiency of the \code{find} operations.
+
+\subsection{Metrics}
+\subsubsection{Total path length}
+Total Path Length (TPL) is a critical metric in evaluating the efficiency of Union-Find data structures. TPL measures the cumulative distance from each element in the Union-Find structure to its representative or root. Specifically, for each element $i$, the distance $d(i)$ to its root is determined, and these distances are summed across all elements. Mathematically, TPL is defined as:
+
+$$\text{TPL} = \sum_{i=1}^{n} d(i)$$
+
+This metric provides insight into the overall depth and compactness of the data structure, reflecting the efficiency of union and find operations. A lower TPL indicates that elements are, on average, closer to their roots, which implies faster find operations. During the experiments, TPL is calculated at regular intervals as pairs of elements are processed and unions are performed. By analyzing TPL across different union and path compression strategies, we can determine which combinations yield more efficient Union-Find structures in terms of minimizing the overall path length.
+
+\begin{lstlisting}[language=Python, caption=Python implementation of TPL]
+def tpl(self) -> int:
+    """Calculate the Total Path Length (TPL)."""
+    total_path_length = 0
+    for i in range(len(self.parents)):
+        total_path_length += self.depth(i)
+    return total_path_length
+\end{lstlisting}
+
+\subsubsection{Total pointer updates}
+Total Pointer Updates (TPU) is an essential metric for assessing the efficiency of path compression strategies in Union-Find data structures. TPU measures the total number of pointer updates that occur during find operations across all elements. For each element $i$, the number of pointers updated during a find operation, $u(i)$, is counted. The TPU is then the sum of these updates for all elements. Formally, TPU is defined as:
+
+$$\text{TPU} = \sum_{i=1}^{n} u(i)$$
+
+For the no compression (NC) strategy, this value is always zero, as no pointers are updated. For other strategies, TPU can be computed more efficiently by knowing the number of children of each root. For instance, with full path compression (FC), TPU can be calculated as:
+
+$$\text{TPU}_{\text{FC}} = \text{TPL} - \sum_{r \in \text{roots}} \text{number of children of } r$$
+
+This metric reflects the effort involved in maintaining the structure's efficiency via path compression. During the experiments, TPU is calculated at regular intervals as pairs of elements are processed and unions are performed. By analyzing TPU across different union and path compression strategies, we can determine which combinations minimize the overhead associated with pointer updates, thereby enhancing the overall performance of the Union-Find structure.
+
+
+\begin{description}
+    \item[No Compression (NC):]
+      \[
+      \text{TPU}_{\text{NC}}(i) = 0
+      \]
+      Since no compression is applied, no pointer updates are necessary.
+    
+    \item[Full Path Compression (FC):]
+      \[
+      \text{TPU}_{\text{FC}}(i) = d(i) - 1
+      \]
+      Full path compression updates each node on the path to point directly to the root. Thus, each find operation updates \( d(i) - 1 \) pointers, where \( d(i) \) is the depth of node \( i \).
+    
+    \item[Path Splitting (PS):]
+      \[
+      \text{TPU}_{\text{PS}}(i) = d(i) - 1
+      \]
+      Path splitting updates each node on the path to point to its grandparent, resulting in \( d(i) - 1 \) pointer updates per find operation.
+    
+    \item[Path Halving (PH):]
+      \[
+      \text{TPU}_{\text{PH}}(i) = \left\lfloor \frac{d(i)}{2} \right\rfloor
+      \]
+      Path halving updates every other node on the path to point to its grandparent. Thus, the number of pointer updates per find operation is approximately half the depth, represented by \( \left\lfloor \frac{d(i)}{2} \right\rfloor \).
+\end{description}
+
+Considering the recurrence formulas for each compression type, the final formula for total TPU calculation is:
+
+\[
+\text{TPU} = \sum_{i=1}^{n} 
+\begin{cases} 
+0 & \text{if the path compression type} = \text{NC} \\
+d(i) - 1 & \text{if the path compression type} \in \{\text{FC}, \text{PS}\} \\
+\left\lfloor \frac{d(i)}{2} \right\rfloor & \text{if the path compression type} = \text{PH} \\
+\end{cases}
+\]
+
+This comprehensive formula captures the calculation of TPU for each path compression type used in the Union-Find data structure.
+
+\begin{lstlisting}[language=Python, caption=Python implementation of TPU for each compression type]
+def tpu(self) -> int:
+    """Calculate the Total Path Updates (TPU)."""
+    total_path_updates = 0
+    for i in range(len(self.parents)):
+        path_length = self.depth(i)
+        path_updates = 0
+        # no compression
+        if self.path_compression_type == PathCompressionType.NC:
+            path_updates = 0
+        # full path compression or path splitting
+        elif self.path_compression_type in (PathCompressionType.FC, PathCompressionType.PS):
+            path_updates = path_length - 1 if path_length > 0 else 0
+        # path halving
+        elif self.path_compression_type == PathCompressionType.PH:
+            path_updates = floor(path_length / 2)
+        else:
+            sys.stderr.write("Invalid path compression type\n")
+        total_path_updates += path_updates
+    return total_path_updates
+\end{lstlisting}
+
+\section{Experimental setup}
+\subsection{Parameters}
+
+
+\subsection{Results}
+\subsubsection{Total Path Length}
+
+\subsubsection{Total Pointer Updates}
+
+\section{Discussion}
+
+\section{Conclusion}
+
+
+\newpage
+\listoffigures
+\lstlistoflistings
+\listoftables
+
+
+\end{document}
