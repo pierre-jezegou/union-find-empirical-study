@@ -10,7 +10,7 @@
 
 \usepackage{lmodern}
 \renewcommand*\familydefault{\sfdefault}
-
+\usepackage{todonotes}
 
 \fancyfoot[R]{\raisebox{-0.5\baselineskip}{\includegraphics[scale=0.25]{images/logos/upc_logo.jpeg}}}
 
@@ -79,19 +79,19 @@ This metric reflects the effort involved in maintaining the structure's efficien
       \[
       \text{TPU}_{\text{FC}}(i) = d(i) - 1
       \]
-      Full path compression updates each node on the path to point directly to the root. Thus, each find operation updates \( d(i) - 1 \) pointers, where \( d(i) \) is the depth of node \( i \).
+      Full path compression updates each node on the path to point directly to the root. Thus, each find operation updates $d(i) - 1$ pointers, where $d(i)$ is the depth of node $i$.
     
     \item[Path Splitting (PS):]
       \[
       \text{TPU}_{\text{PS}}(i) = d(i) - 1
       \]
-      Path splitting updates each node on the path to point to its grandparent, resulting in \( d(i) - 1 \) pointer updates per find operation.
+      Path splitting updates each node on the path to point to its grandparent, resulting in $d(i) - 1$ pointer updates per find operation.
     
     \item[Path Halving (PH):]
       \[
       \text{TPU}_{\text{PH}}(i) = \left\lfloor \frac{d(i)}{2} \right\rfloor
       \]
-      Path halving updates every other node on the path to point to its grandparent. Thus, the number of pointer updates per find operation is approximately half the depth, represented by \( \left\lfloor \frac{d(i)}{2} \right\rfloor \).
+      Path halving updates every other node on the path to point to its grandparent. Thus, the number of pointer updates per find operation is approximately half the depth, represented by $\left\lfloor \frac{d(i)}{2} \right\rfloor$.
 \end{description}
 
 Considering the recurrence formulas for each compression type, the final formula for total TPU calculation is:
@@ -129,17 +129,128 @@ def tpu(self) -> int:
     return total_path_updates
 \end{lstlisting}
 
+\subsection{Total cost}
+In this assignment, the total cost of the union-find data structure is calculated by processing pairs of elements and conducting unions until a single block remains. The experiment measures Total Path Length (TPL) and Total Pointer Updates (TPU) at regular intervals. The total cost is then computed using the formula:
+
+$$\text{Total Cost} = 2 \times \text{TPL} + \varepsilon \times \text{TPU}$$
+
+where $\varepsilon$ is a weight factor for pointer updates. This total cost metric provides a comprehensive assessment of the efficiency of different union-find strategies under various configurations.
+
+The importance of $\varepsilon$ lies in its role in balancing the contributions of TPL and TPU to the total cost. By adjusting $\varepsilon$, we can emphasize or de-emphasize the cost of pointer updates relative to the cost of path traversal. A higher $\varepsilon$ value means that pointer updates are considered more expensive, thus strategies that minimize TPU will be favored. Conversely, a lower $\varepsilon$ value places more emphasis on minimizing TPL. This flexibility allows the total cost metric to be tailored to different scenarios and performance considerations, making it a versatile tool for evaluating union-find strategies.
+
+
 \section{Experimental setup}
-\subsection{Parameters}
+The objective of this experimental study is to evaluate the performance of various Union-Find data structures under different union strategies and path compression heuristics. The performance is assessed by measuring the Total Path Length (TPL) and Total Pointer Updates (TPU) during the union operations.
+\subsection{Union-Find Variants}
+\subsubsection{Strategies}
+We consider 12 combinations of Union-Find strategies based on three union strategies and four path compression techniques:
+\begin{lstlisting}[language=Python]
+strategies = {
+    "QU-NC": (QuickUnion, PathCompressionType.NC),
+    "QU-FC": (QuickUnion, PathCompressionType.FC),
+    "QU-PS": (QuickUnion, PathCompressionType.PS),
+    "QU-PH": (QuickUnion, PathCompressionType.PH),
+    "UW-NC": (UnionWeight, PathCompressionType.NC),
+    "UW-FC": (UnionWeight, PathCompressionType.FC),
+    "UW-PS": (UnionWeight, PathCompressionType.PS),
+    "UW-PH": (UnionWeight, PathCompressionType.PH),
+    "UR-NC": (UnionRank, PathCompressionType.NC),
+    "UR-FC": (UnionRank, PathCompressionType.FC),
+    "UR-PS": (UnionRank, PathCompressionType.PS),
+    "UR-PH": (UnionRank, PathCompressionType.PH),
+}
+\end{lstlisting}
 
+\subsubsection{Experiment Repetition and Data Collection}
+The experiments are repeated $T = 20$ times for each combination of union and path compression strategies. For each repetition, we measure TPL and TPU at intervals of $\Delta$ pairs processed. The averages of TPL and TPU are then calculated for different values of $N$ (number of pairs processed).\\
 
-\subsection{Results}
-\subsubsection{Total Path Length}
+\textit{Note: For convenience, we use $\Delta$ depending on the value of $N$ to reduce the number of data points and, as a consequence, reduce the time required to run the experiments.}
 
-\subsubsection{Total Pointer Updates}
+\subsubsection{Values of $n$ and Plotting}
+The experiments are conducted for different values of $n$, specifically $n = 1000$, $n = 5000$, and $n = 10000$. For each $n$, we plot the evolution of TPL and TPU as functions of $N$, normalized by dividing TPL and TPU by $n$. This normalization gives the average distance to the root of a random node and the average number of pointers updated during a find operation.
+\begin{lstlisting}[language=Python]
+n_values = [1000, 5000, 10000]
+T = 20
+\end{lstlisting}
+
+\subsection{Experimental Procedure}
+\subsubsection{Initialization and Pair Processing}
+For each combination, the Union-Find data structure is initialized with $n$ elements, each in its own block. We then process $\binom{n}{2}$ distinct pairs $(i, j)$ in random order, performing a union operation for each pair. The processing stops when there is only one block left in the structure, which typically occurs after approximately $\Theta(n \log n)$ pairs have been processed.
+
+\subsubsection{Performance Metrics}
+During the processing of pairs, we measure the following parameters:
+\begin{itemize}
+    \item \textbf{Total Path Length (TPL)}: The sum of distances from each element to its root.
+    \item \textbf{Total Pointer Updates (TPU)}: The total number of pointers updated during the path compression.
+\end{itemize}
+
+The cost of each heuristic is evaluated using a linear combination of TPL and TPU. For example, the total cost of Full Path Compression (FC) can be expressed as $2 \cdot \text{TPL} + \varepsilon \cdot \text{TPU}$, where $\varepsilon \geq 1$ represents the cost of updating a pointer.
+
+\subsubsection{Comparative Analysis}
+To facilitate a fair comparison between different heuristics, we fix $\varepsilon = 2$ and report the total and average costs. This comparison helps in understanding the trade-offs between different union strategies and path compression techniques.
+
+\subsubsection{Implementation and Execution}
+The experiments are implemented in Python, with the full source code provided in the appendix. The code is designed to efficiently compute TPL and TPU for each configuration of the Union-Find. Detailed instructions on reproducing the experiments are provided in the README file included with the submission.
+
+The full listing of the code and detailed explanations of the implementation are included in the appendix of this report.
+
+\section{Results}
+\subsection{Total Path Length}
+\begin{description}
+    \item[$N = 1000$] This plot illustrates the evolution of TPL as a function of the number of pairs processed for different union and path compression strategies. The results are averaged over $T=20$ repetitions for each combination. The TPL values are normalized by dividing by $n$ to provide a fair comparison across different values of $n$.
+    \begin{figure}[h]
+        \centering
+        \includegraphics[width=\linewidth]{plots/plot_1000_Normalized TPL.pdf}
+        \caption{Total Path Length for $n = 1000$}
+    \end{figure}
+    \item[$N = 5000$] Same as above, but for $n = 5000$.
+    \begin{figure}[h]
+        \centering
+        \includegraphics[width=\linewidth]{plots/plot_5000_Normalized TPL.pdf}
+        \caption{Total Path Length for $n = 5000$}
+    \end{figure}
+    \item[$N = 10000$] Same as above, but for $n = 10000$.
+    \begin{figure}[h]
+        \centering
+        \includegraphics[width=\linewidth]{plots/plot_10000_Normalized TPL.pdf}
+        \caption{Total Path Length for $n = 10000$}
+    \end{figure}
+\end{description}
+
+\subsection{Total Pointer Updates}
+\begin{description}
+    \item[$N = 1000$] This plot illustrates the evolution of TPU as a function of the number of pairs processed for different union and path compression strategies. The results are averaged over $T=20$ repetitions for each combination. The TPL values are normalized by dividing by $n$ to provide a fair comparison across different values of $n$.
+    \begin{figure}[h]
+        \centering
+        \includegraphics[width=\linewidth]{plots/plot_1000_Normalized TPU.pdf}
+        \caption{Total Pointer Updates for $n = 1000$}
+    \end{figure}
+    \item[$N = 5000$] Same as above, but for $n = 5000$.
+    \begin{figure}[h]
+        \centering
+        \includegraphics[width=\linewidth]{plots/plot_5000_Normalized TPU.pdf}
+        \caption{Total Pointer Updates for $n = 5000$}
+    \end{figure}
+    \item[$N = 10000$] Same as above, but for $n = 10000$.
+    \begin{figure}[h]
+        \centering
+        \includegraphics[width=\linewidth]{plots/plot_10000_Normalized TPU.pdf}
+        \caption{Total Pointer Updates for $n = 10000$}
+    \end{figure}
+\end{description}
+
+\subsection{Total cost for different heuristics}
+As total cost is a linear combination of TPL and TPU, we can compare the performance of different heuristics by fixing $\varepsilon \in \{2, 5, 10, 20\}$ and calculating the total cost. The following plots illustrate the total cost for different union and path compression strategies. We just present the results for $n = 1000$ for brevity, but similar plots can be generated for $n = 5000$ and $n = 10000$. The total cost values are normalized by dividing by $n$ to provide a fair comparison across different values of $n$.
+$$\boxed{\text{Total Cost}_{\text{normalized}} = \dfrac{1}{n}\left(2\times\text{TPL} + \varepsilon \times \text{TPU}\right)}$$
+\begin{description}
+    \item[$\varepsilon = 2$] This plot shows the total cost for different union and path compression strategies with $\varepsilon = 2$. The results are averaged over $T=20$ repetitions for each combination.
+    \item[$\varepsilon = 5$] Same as above, but with $\varepsilon = 5$.
+    \item[$\varepsilon = 10$] Same as above, but with $\varepsilon = 10$.
+    \item[$\varepsilon = 20$] Same as above, but with $\varepsilon = 20$.
+\end{description}
 
 \section{Discussion}
-
+This experiment
 \section{Conclusion}
 
 

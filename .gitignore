@@ -1,2 +1,4 @@
 .venv
 __pycache__
+documentation/plots/*.pdf
+documentation/main.pdf

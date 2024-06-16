@@ -1,0 +1,21 @@
+\documentclass{standalone}
+\usepackage{pgfplots}
+
+\begin{document}
+    \begin{tikzpicture}
+        \begin{axis}[
+            title={Results of Union-Find Experiments - $n$={{ n_value }}},
+            xlabel={{ x_label }},
+            ylabel= {{ y_label }},
+            legend pos=outer north east,
+            grid=both,
+            restrict y to domain=0:{{ y_max }},
+            only marks,
+            ]
+            {% for plot in plots %}
+                \addplot[mark size=1pt, color={{ plot.color }}, mark={{ plot.symbol }}] coordinates { {% for x, y in plot.coordinates %} ({{ x }}, {{ y }}){% endfor %} };
+                \addlegendentry{ {{ plot.label }} }
+            {% endfor %}
+        \end{axis}
+    \end{tikzpicture}
+\end{document}
