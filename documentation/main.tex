@@ -244,9 +244,23 @@ As total cost is a linear combination of TPL and TPU, we can compare the perform
 $$\boxed{\text{Total Cost}_{\text{normalized}} = \dfrac{1}{n}\left(2\times\text{TPL} + \varepsilon \times \text{TPU}\right)}$$
 \begin{description}
     \item[$\varepsilon = 2$] This plot shows the total cost for different union and path compression strategies with $\varepsilon = 2$. The results are averaged over $T=20$ repetitions for each combination.
-    \item[$\varepsilon = 5$] Same as above, but with $\varepsilon = 5$.
-    \item[$\varepsilon = 10$] Same as above, but with $\varepsilon = 10$.
-    \item[$\varepsilon = 20$] Same as above, but with $\varepsilon = 20$.
+        \begin{figure}[h!]
+            \centering
+            \includegraphics[width=\linewidth]{plots/plot_1000_Total_cost_epsilon_2.pdf}
+            \caption{Total Cost for $n = 1000$ with $\varepsilon = 2$}
+        \end{figure}
+    \item[$\varepsilon = 4$] Same as above, but with $\varepsilon = 4$.
+        \begin{figure}[h!]
+            \centering
+            \includegraphics[width=\linewidth]{plots/plot_1000_Total_cost_epsilon_4.pdf}
+            \caption{Total Cost for $n = 1000$ with $\varepsilon = 4$}
+        \end{figure}
+    \item[$\varepsilon = 8$] Same as above, but with $\varepsilon = 8$.
+        \begin{figure}[h!]
+            \centering
+            \includegraphics[width=\linewidth]{plots/plot_1000_Total_cost_epsilon_8.pdf}
+            \caption{Total Cost for $n = 1000$ with $\varepsilon = 8$}
+        \end{figure}
 \end{description}
 
 \section{Discussion}
