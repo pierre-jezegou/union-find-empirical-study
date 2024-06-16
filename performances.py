@@ -1,61 +1,113 @@
-import os
 import random
-import time
+import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib import pyplot as plt
-import seaborn as sns
-
+import time
 from union_find import QuickUnion, UnionWeight, UnionRank, PathCompressionType
 
-# Define the range for n and the step
-n_values = list(range(1, 1000, 10)) + [1000 + i * 10 for i in range(100)]
+# Enum and Union-Find classes are as provided in the initial code
 
-# List of path compression types and union-find classes
-path_compressions = ["NC", "FC", "PS", "PH"]
-union_find_classes = [UnionWeight, UnionRank]
+def generate_random_pairs(n):
+    pairs = [(i, j) for i in range(n) for j in range(i+1, n)]
+    random.shuffle(pairs)
+    return pairs
 
-def random_operations(uf, size: int, num_operations: int):
-    """Perform a series of random merges and finds."""
-    for _ in range(num_operations):
-        a, b = random.randint(0, size - 1), random.randint(0, size - 1)
-        uf.merge(a, b)
-        uf.find(a)
+def pad_arrays(arrays, length):
+    return [np.pad(array, (0, length - len(array)), 'constant') for array in arrays]
 
-data = []
+def run_experiment(n, union_strategy, compression_strategy, delta, T):
+    all_tpl_records = []
+    all_tpu_records = []
+    results_data = []
+    
+    if n > 1000 and union_strategy == QuickUnion and compression_strategy == PathCompressionType.NC:
+        return 0, 0, results_data
 
-# Enhanced tests
-for path_compression in path_compressions:
-    print(f"Path compression: {path_compression}")
-    for union_find_class in union_find_classes:
-        print(f"Union find class: {union_find_class.__name__}")
-        for n in n_values:
-            print(f"\t n: {n}")
-            uf = union_find_class(n, PathCompressionType[path_compression])
-            start_time = time.time()
+    for i in range(T):
+        print(f"Running experiment {round((i + 1)/T*100,0)}% for n={n} with {union_strategy.__name__} and {compression_strategy.name} (T={T}, delta={delta})")
+        uf = union_strategy(n, compression_strategy)
+        pairs = generate_random_pairs(n)
 
-            # Perform random operations
-            random_operations(uf, n, n * 10)
+        tpl_records = []
+        tpu_records = []
 
-            elapsed_time = time.time() - start_time
+        start_time = time.time()
 
-            # Merge first and last element to check stats
-            uf.merge(0, n - 1)
+        for k, (i, j) in enumerate(pairs):
+            uf.merge(i, j)
 
-            # Print stats
-            data.append({
-                'n': n,
-                'depth': uf.depth(0),
-                'Time (s)': elapsed_time,
-                'TPU': uf.tpu(),
-                'TPL': uf.tpl(),
-                'Normalized Depth': uf.depth(0) / n if n != 0 else 0,
-                'Normalized TPU': uf.tpu() / n if n != 0 else 0,
-                'Normalized TPL': uf.tpl() / n if n != 0 else 0,
-                'Union-Find Class': union_find_class.__name__,
-                'Path Compression': path_compression
-            })
+            if (k + 1) % delta == 0 or uf.nr_blocks() == 1:
+                tpl_records.append(uf.tpl())
+                tpu_records.append(uf.tpu())
+                elapsed_time = time.time() - start_time
+                results_data.append({
+                    'n': n,
+                    'k': k,
+                    'depth': uf.depth(0),
+                    'Time (s)': elapsed_time,
+                    'TPU': uf.tpu(),
+                    'TPL': uf.tpl(),
+                    'Normalized Depth': uf.depth(0) / n if n != 0 else 0,
+                    'Normalized TPU': uf.tpu() / n if n != 0 else 0,
+                    'Normalized TPL': uf.tpl() / n if n != 0 else 0,
+                    'Union-Find Class': union_strategy.__name__,
+                    'Path Compression': compression_strategy.name
+                })
+                if uf.nr_blocks() == 1:
+                    break
 
-df = pd.DataFrame(data)
+        if len(tpl_records) >= 5:
+            all_tpl_records.append(np.array(tpl_records))
+            all_tpu_records.append(np.array(tpu_records))
+
+    if not all_tpl_records or not all_tpu_records:
+        return np.array([]), np.array([]), results_data
+
+    max_length = max(len(record) for record in all_tpl_records)
+    all_tpl_records = pad_arrays(all_tpl_records, max_length)
+    all_tpu_records = pad_arrays(all_tpu_records, max_length)
+
+    avg_tpl = np.mean(all_tpl_records, axis=0)
+    avg_tpu = np.mean(all_tpu_records, axis=0)
+
+    return avg_tpl, avg_tpu, results_data
+
+# Main experiment execution
+n_values = [1000, 5000, 10000]
+T = 20
+delta = {
+    1000: 10,
+    5000: 50,
+    10000: 100
+}
+
+strategies = {
+    "QU-NC": (QuickUnion, PathCompressionType.NC),
+    "QU-FC": (QuickUnion, PathCompressionType.FC),
+    "QU-PS": (QuickUnion, PathCompressionType.PS),
+    "QU-PH": (QuickUnion, PathCompressionType.PH),
+    "UW-NC": (UnionWeight, PathCompressionType.NC),
+    "UW-FC": (UnionWeight, PathCompressionType.FC),
+    "UW-PS": (UnionWeight, PathCompressionType.PS),
+    "UW-PH": (UnionWeight, PathCompressionType.PH),
+    "UR-NC": (UnionRank, PathCompressionType.NC),
+    "UR-FC": (UnionRank, PathCompressionType.FC),
+    "UR-PS": (UnionRank, PathCompressionType.PS),
+    "UR-PH": (UnionRank, PathCompressionType.PH),
+}
 
 
-df.to_csv('data.csv', index=False)
+for n in n_values:
+    all_results_data = []
+    for strategy_name, (union_strategy, compression_strategy) in strategies.items():
+        print(f"Running experiment for n={n} with {strategy_name}")
+        tpl, tpu, results_data = run_experiment(n, union_strategy, compression_strategy, delta[n], T)
+        all_results_data.extend(results_data)
+    df = pd.DataFrame(all_results_data)
+    df.to_csv(f'union_find_experiments_results_{n}.csv', index=False)
+    
+
+# Convert the results data to a pandas DataFrame
+df = pd.DataFrame(all_results_data)
+
+df.to_csv('union_find_experiments_results.csv', index=False)

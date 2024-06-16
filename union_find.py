@@ -10,20 +10,18 @@ class PathCompressionType(Enum):
     PS = 3 # Path splitting
     PH = 4 # Path halving
 
-class Measure:
-    def __init__(self, tpl, tpu):
-        self.tpl = tpl
-        self.tpu = tpu
 
 class UnionFind:
     """Union-find data structure."""
-    def __init__(self):
-        self.parents = []
-        self.n_blocks = 0
-        self.path_compression_type = PathCompressionType.NC
+    def __init__(self, n: int, path_compression_type=PathCompressionType.NC):
+        self.parents = list(range(n))
+        self.n_blocks = n
+        self.path_compression_type = path_compression_type
 
     def find(self, i: int) -> int:
         """Find the representative of the class to which i belongs."""
+        if not (0 <= i < len(self.parents)):
+            raise IndexError("Index out of bounds")
 
         if self.parents[i] == i or self.parents[i] < 0:
             return i
@@ -66,12 +64,17 @@ class UnionFind:
                 i = self.parents[i]
             return i
         else:
-            sys.stderr.write("Invalid path compression path_compression_type\n")
+            sys.stderr.write("Invalid path compression type\n")
             return -1
 
     def merge(self, i: int, j: int):
         """Performs the union of the classes with representatives ri and rj."""
-        raise NotImplementedError("Merge function not implemented")
+        ri = self.find(i)
+        rj = self.find(j)
+
+        if ri != rj:
+            self.parents[ri] = rj
+            self.n_blocks -= 1
 
     def nr_blocks(self):
         """Returns the number of blocks in the union-find set."""
@@ -112,21 +115,14 @@ class UnionFind:
             elif self.path_compression_type == PathCompressionType.PH:
                 path_updates = floor(path_length / 2)
             else:
-                sys.stderr.write("Invalid path compression path_compression_type\n")
+                sys.stderr.write("Invalid path compression type\n")
             total_path_updates += path_updates
         return total_path_updates
-
-    def print(self):
-        """Print the parents of the nodes."""
-        print("[", end=" ")
-        for num in self.parents:
-            print(num, end=" ")
-        print("];")
 
 class QuickUnion(UnionFind):
     """Quick-union data structure."""
     def __init__(self, n: int, path_compression_type) -> None:
-        super().__init__()
+        super().__init__(n, path_compression_type)
         self.parents = list(range(n))
         self.n_blocks = n
         self.path_compression_type = path_compression_type
@@ -141,7 +137,7 @@ class QuickUnion(UnionFind):
 class UnionWeight(UnionFind):
     """Union-weight data structure."""
     def __init__(self, n: int, path_compression_type):
-        super().__init__()
+        super().__init__(n, path_compression_type)
         self.parents = [-1] * n
         self.n_blocks = n
         self.path_compression_type = path_compression_type
@@ -162,7 +158,7 @@ class UnionWeight(UnionFind):
 class UnionRank(UnionFind):
     """Union-rank data structure."""
     def __init__(self, n: int, path_compression_type):
-        super().__init__()
+        super().__init__(n, path_compression_type)
         self.parents = [-1] * n
         self.n_blocks = n
         self.path_compression_type = path_compression_type
@@ -189,7 +185,6 @@ if __name__ == "__main__":
     qu.merge(1, 2)
     qu.merge(3, 4)
     qu.merge(1, 4)
-    qu.print()
     print(f"TPL: {qu.tpl()}, TPU: {qu.tpu()}")
 
     print("\nTesting UnionWeight:")
@@ -197,7 +192,6 @@ if __name__ == "__main__":
     uw.merge(1, 2)
     uw.merge(3, 4)
     uw.merge(1, 4)
-    uw.print()
     print(f"TPL: {uw.tpl()}, TPU: {uw.tpu()}")
 
     print("\nTesting UnionRank:")
@@ -205,5 +199,11 @@ if __name__ == "__main__":
     ur.merge(1, 2)
     ur.merge(3, 4)
     ur.merge(1, 4)
-    ur.print()
+    ur.merge(5, 6)
+    ur.merge(7, 8)
+    ur.merge(5, 8)
+    ur.merge(1, 8)
+    ur.merge(9, 0)
+    ur.merge(1, 0)
+    ur.merge(1, 9)
     print(f"TPL: {ur.tpl()}, TPU: {ur.tpu()}")
