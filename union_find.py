@@ -175,35 +175,3 @@ class UnionRank(UnionFind):
             self.parents[ri] = min(self.parents[ri], self.parents[rj] - 1)
             self.parents[rj] = ri
         self.n_blocks -= 1
-
-if __name__ == "__main__":
-    N = 10
-    path_compression_type = PathCompressionType.FC
-
-    print("Testing QuickUnion:")
-    qu = QuickUnion(N, path_compression_type)
-    qu.merge(1, 2)
-    qu.merge(3, 4)
-    qu.merge(1, 4)
-    print(f"TPL: {qu.tpl()}, TPU: {qu.tpu()}")
-
-    print("\nTesting UnionWeight:")
-    uw = UnionWeight(N, path_compression_type)
-    uw.merge(1, 2)
-    uw.merge(3, 4)
-    uw.merge(1, 4)
-    print(f"TPL: {uw.tpl()}, TPU: {uw.tpu()}")
-
-    print("\nTesting UnionRank:")
-    ur = UnionRank(N, path_compression_type)
-    ur.merge(1, 2)
-    ur.merge(3, 4)
-    ur.merge(1, 4)
-    ur.merge(5, 6)
-    ur.merge(7, 8)
-    ur.merge(5, 8)
-    ur.merge(1, 8)
-    ur.merge(9, 0)
-    ur.merge(1, 0)
-    ur.merge(1, 9)
-    print(f"TPL: {ur.tpl()}, TPU: {ur.tpu()}")
