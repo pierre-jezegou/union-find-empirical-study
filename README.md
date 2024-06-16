@@ -37,8 +37,8 @@ Summarizes findings and performance trade-offs between different strategies.
 
 ## How to Run the Project
 1. **Install Python**.
-2. **Clone the Repository**: `git clone <repository-url>`
-3. **Navigate to the Directory**: `cd <project-directory>`
+2. **Clone the Repository**: `git clone https://github.com/pierre-jezegou/union-find-empirical-study`
+3. **Navigate to the Directory**: `cd union-find-empirical-study`
 4. **Install Dependencies**: `pip install -r requirements.txt`
-5. **Run Experiments**: Execute the provided Python scripts.
+5. **Run Experiments**: Execute the provided Python scripts: `python3 performances.py`
 6. **View Results**: Results are saved and can be viewed with any plotting tool.
